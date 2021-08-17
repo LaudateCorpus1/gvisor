@@ -510,6 +510,7 @@ func (e *endpoint) buildUDPPacketInfo(p tcpip.Payloader, opts tcpip.WriteOptions
 		return udpPacketInfo{}, &tcpip.ErrBroadcastDisabled{}
 	}
 
+	// TODO(https://gvisor.dev/issue/6538): Avoid this allocation.
 	v := make([]byte, p.Len())
 	if _, err := io.ReadFull(p, v); err != nil {
 		return udpPacketInfo{}, &tcpip.ErrBadBuffer{}
