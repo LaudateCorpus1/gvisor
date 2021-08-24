@@ -1652,6 +1652,65 @@ func TestConnectBindToDevice(t *testing.T) {
 	}
 }
 
+func TestShutdownConnectingSocket(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		shutdownMode tcpip.ShutdownFlags
+	}{
+		{"ShutdownRead", tcpip.ShutdownRead},
+		{"ShutdownWrite", tcpip.ShutdownWrite},
+		{"ShutdownReadWrite", tcpip.ShutdownRead | tcpip.ShutdownWrite},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			c := context.New(t, defaultMTU)
+			defer c.Cleanup()
+
+			// Create an endpoint, don't handshake because we want to interfere with
+			// the handshake process.
+			c.Create(-1)
+
+			waitEntry, ch := waiter.NewChannelEntry(nil)
+			c.WQ.EventRegister(&waitEntry, waiter.EventHUp)
+			defer c.WQ.EventUnregister(&waitEntry)
+
+			// Start connection attempt.
+			addr := tcpip.FullAddress{Addr: context.TestAddr, Port: context.TestPort}
+			if d := cmp.Diff(&tcpip.ErrConnectStarted{}, c.EP.Connect(addr)); d != "" {
+				t.Fatalf("Connect(...) mismatch (-want +got):\n%s", d)
+			}
+
+			// Check the SYN packet.
+			b := c.GetPacket()
+			checker.IPv4(t, b,
+				checker.TCP(
+					checker.DstPort(context.TestPort),
+					checker.TCPFlags(header.TCPFlagSyn),
+				),
+			)
+
+			if got, want := tcp.EndpointState(c.EP.State()), tcp.StateSynSent; got != want {
+				t.Fatalf("got State() = %s, want %s", got, want)
+			}
+
+			c.EP.Shutdown(test.shutdownMode)
+
+			// The endpoint internal state is updated immediately.
+			if got, want := tcp.EndpointState(c.EP.State()), tcp.StateError; got != want {
+				t.Fatalf("got State() = %s, want %s", got, want)
+			}
+
+			select {
+			case <-ch:
+			default:
+				t.Fatalf("The endpoint was not notified")
+			}
+
+			ept := endpointTester{c.EP}
+			ept.CheckReadError(t, &tcpip.ErrConnectionReset{})
+		})
+	}
+}
+
 func TestSynSent(t *testing.T) {
 	for _, test := range []struct {
 		name  string
@@ -1675,7 +1734,7 @@ func TestSynSent(t *testing.T) {
 
 			addr := tcpip.FullAddress{Addr: context.TestAddr, Port: context.TestPort}
 			err := c.EP.Connect(addr)
-			if d := cmp.Diff(err, &tcpip.ErrConnectStarted{}); d != "" {
+			if d := cmp.Diff(&tcpip.ErrConnectStarted{}, err); d != "" {
 				t.Fatalf("Connect(...) mismatch (-want +got):\n%s", d)
 			}
 

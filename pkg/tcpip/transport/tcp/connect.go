@@ -578,6 +578,9 @@ func (h *handshake) complete() tcpip.Error {
 			if (n&notifyClose)|(n&notifyAbort) != 0 {
 				return &tcpip.ErrAborted{}
 			}
+			if n&notifyShutdown != 0 {
+				return &tcpip.ErrConnectionReset{}
+			}
 			if n&notifyDrain != 0 {
 				for !h.ep.segmentQueue.empty() {
 					s := h.ep.segmentQueue.dequeue()
