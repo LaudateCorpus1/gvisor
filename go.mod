@@ -10,7 +10,7 @@ require (
 	github.com/cenkalti/backoff v1.1.1-0.20190506075156-2146c9339422
 	github.com/containerd/cgroups v1.0.3
 	github.com/containerd/console v1.0.2
-	github.com/containerd/containerd v1.5.16
+	github.com/containerd/containerd v1.5.18
 	github.com/containerd/fifo v1.0.0
 	github.com/containerd/go-runc v1.0.0
 	github.com/containerd/typeurl v1.0.2
@@ -56,7 +56,7 @@ require (
 require (
 	cloud.google.com/go v0.65.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/Microsoft/hcsshim v0.8.24 // indirect
+	github.com/Microsoft/hcsshim v0.8.25 // indirect
 	github.com/cilium/ebpf v0.6.2 // indirect
 	github.com/containerd/ttrpc v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
